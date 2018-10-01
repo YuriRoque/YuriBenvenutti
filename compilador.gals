@@ -1,0 +1,121 @@
+#Options
+GenerateScanner = true
+GenerateParser = true
+Language = Java
+ScannerName = Lexico
+ParserName = Sintatico
+SemanticName = Semantico
+ScannerCaseSensitive = true
+ScannerTable = Full
+Input = Stream
+Parser = LL
+#RegularDefinitions
+D: [0-9]
+sinal: ["-""+"]
+WS: [\ \n \t]
+C: [a-z A-Z]
+
+
+#Tokens
+: {WS}*
+
+int: {sinal}?{D}+
+variavel: ({C})({C}|{D})*
+string: \"({C}|{WS}|{D})*\"
+
+//tokens de formatacao
+tk_inicioprograma = variavel : "ProgramStart"
+tk_fimprograma = variavel : "ProgramEnd" 
+
+//tokens de comando
+se = variavel: "even"
+senao = variavel : "odd"
+ler = variavel : "read"
+escrever = variavel: "write"
+enquanto = variavel: "while"
+inteiro = variavel: "int"
+
+//tokens de representacao
+tk_adicao: "+"
+tk_subtracao: "-"
+tk_multiplicacao: "*"
+tk_divisao: "/"
+tk_maior: ">"
+tk_menor: "<"
+
+tk_abrecondicao: "("
+tk_fechacondicao: ")"
+tk_abrelistacomandos: "{"
+tk_fechalistacomandos: "}"
+tk_atribuicao: "="
+tk_fimlinha: ";"
+#NonTerminals
+<PROGRAMA>
+<DECLARACAO_INICIAL>
+<LISTA_COMANDOS>
+<COMANDO>
+<DECLARACAO_VARIAVEL>
+<DECLARACOES_VARIAVEIS>
+<DECLARACAO_OBRIGATORIA>
+<TIPO>
+<ATRIBUICAO>
+<ATRIBUICAO_INICIAL>
+<IMPRESSAO>
+<OPERADORES>
+<OPERANDO>
+<IMPRIMIR>
+<COPIAR>
+<OPERACAO_CONDICIONAL>
+<CONDICAO>
+<CONDICAO_CONTRARIA>
+<OPERACAO_REPETICAO>
+<OPERACAO_ARITMETICA>
+<EXPRESSAO_ARITMETICA>
+<COMPARADOR_OPERADOR>
+<OPERADOR_LOGICO>
+<OPERADOR_ARITMETICO>
+#Grammar
+//Corpo
+<PROGRAMA> ::= tk_inicioprograma <DECLARACAO_INICIAL><LISTA_COMANDOS> tk_fimprograma;
+
+//Declaracoes
+<DECLARACAO_INICIAL> ::= <DECLARACAO_VARIAVEL><DECLARACAO_OBRIGATORIA>;
+<DECLARACAO_VARIAVEL> ::= inteiro variavel <ATRIBUICAO_INICIAL> tk_fimlinha <DECLARACAO_VARIAVEL>|î;
+<DECLARACAO_OBRIGATORIA> ::= <COMANDO>;
+
+//Tipos
+<OPERANDO> ::= int
+	       |variavel;
+
+//Comandos
+<LISTA_COMANDOS> ::= <COMANDO> <LISTA_COMANDOS>|î;
+<COMANDO> ::=  <IMPRIMIR>
+	       |<COPIAR>
+	       |<OPERACAO_CONDICIONAL>
+	       |<OPERACAO_REPETICAO>
+	       |<ATRIBUICAO>;
+<IMPRIMIR> ::= escrever tk_abrecondicao <IMPRESSAO> tk_fechacondicao tk_fimlinha;
+<IMPRESSAO> ::= string|<OPERANDO>;
+<COPIAR> ::= ler tk_abrecondicao variavel tk_fechacondicao tk_fimlinha;
+<OPERACAO_CONDICIONAL> ::= se tk_abrecondicao <CONDICAO> tk_fechacondicao tk_abrelistacomandos <LISTA_COMANDOS> tk_fechalistacomandos <CONDICAO_CONTRARIA>;
+<OPERACAO_REPETICAO> ::= enquanto tk_abrecondicao <CONDICAO> tk_fechacondicao tk_abrelistacomandos <LISTA_COMANDOS> tk_fechalistacomandos;
+
+<ATRIBUICAO> ::= <OPERANDO> tk_atribuicao <EXPRESSAO_ARITMETICA> tk_fimlinha;
+<ATRIBUICAO_INICIAL> ::= tk_atribuicao <OPERANDO>|î;
+<EXPRESSAO_ARITMETICA> ::= tk_abrecondicao <OPERANDO> <OPERADOR_ARITMETICO> <OPERANDO> tk_fechacondicao <OPERADOR_ARITMETICO> <EXPRESSAO_ARITMETICA>
+			   |<OPERANDO>|î;
+
+
+//Condicao do se e senao
+<CONDICAO> ::= <EXPRESSAO_ARITMETICA> <OPERADOR_LOGICO> <EXPRESSAO_ARITMETICA>;
+<CONDICAO_CONTRARIA> ::= senao tk_abrelistacomandos <LISTA_COMANDOS> tk_fechalistacomandos|î;
+
+//Comparador e operador aritmetico
+<COMPARADOR_OPERADOR> ::= <OPERADOR_LOGICO>
+			  |<OPERADOR_ARITMETICO>;
+<OPERADOR_LOGICO> ::= tk_maior
+		      |tk_menor;
+<OPERADOR_ARITMETICO> ::= tk_adicao
+			 |tk_subtracao
+			 |tk_multiplicacao
+			 |tk_divisao|î;
