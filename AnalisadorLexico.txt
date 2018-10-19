@@ -1,0 +1,179 @@
+package compiladores;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Pattern;
+import javafx.util.Pair;
+
+public class AnalisadorLexico {
+	
+	private ArrayList<Pair<String, String>> expressions = new ArrayList<>(); //vetor para fazer a comparacao match
+	public AnalisadorLexico() { //construtor para acrescentar tokens e lexemas no vetor
+		//keywords
+		expressions.add(new Pair<String, String>("tk_inicioprograma"	, "ProgramStart"	));
+		expressions.add(new Pair<String, String>("tk_fimprograma"       , "ProgramEnd"      ));
+		expressions.add(new Pair<String, String>("se"					, "^even$"			));
+		expressions.add(new Pair<String, String>("senao"				, "^odd$"			));
+		expressions.add(new Pair<String, String>("ler"					, "^read$"			));
+		expressions.add(new Pair<String, String>("escrever"				, "^write$"			));
+		expressions.add(new Pair<String, String>("enquanto"				, "^while$"			));
+		expressions.add(new Pair<String, String>("inteiro"				, "^int$"			));
+		
+		//operadores
+		expressions.add(new Pair<String, String>("tk_adicao"			, "^\\+$"			));
+		expressions.add(new Pair<String, String>("tk_subtracao"			, "^\\-$"			));
+		expressions.add(new Pair<String, String>("tk_multiplicacao"		, "^\\*$"			));
+		expressions.add(new Pair<String, String>("tk_divisao"			, "^\\\\$"			));
+		expressions.add(new Pair<String, String>("tk_maior"				, "^\\>$"			));
+		expressions.add(new Pair<String, String>("tk_menor"				, "^\\<$"			));
+		expressions.add(new Pair<String, String>("tk_abrecondicao"		, "^\\($"			));
+		expressions.add(new Pair<String, String>("tk_fechacondicao"		, "^\\)$"			));
+		expressions.add(new Pair<String, String>("tk_abrelistacondicao"	, "^\\{$"			));
+		expressions.add(new Pair<String, String>("tk_fechalistacondicao", "^\\}$"			));
+		expressions.add(new Pair<String, String>("tk_atribuicao"		, "^\\=$"			));
+		expressions.add(new Pair<String, String>("tk_fimlinha"			, "^\\;$"			));
+		
+		//numeros, variaveis e strings
+		expressions.add(new Pair<String, String>("inteiro"				, "^[\"\\-\"\"\\+\"]?[0-9]+$"			));
+		expressions.add(new Pair<String, String>("variavel"				, "^([a-z]|[A-Z])([a-z]|[A-Z]|[0-9])*$"));
+		expressions.add(new Pair<String, String>("string"				, "^(\"([a-z]|[A-Z]|[0-9]|[\\s])*\")$"));
+	}
+	
+	public int findMatch(String word) {	//metodo para retornar o match	
+		for (int i =0; i < expressions.size(); i++)			
+			if (Pattern.matches(expressions.get(i).getValue(), word))
+				return i;		
+		return -1;
+	}
+	
+	public void analyse() { //metodo analisador
+		try {
+			ListaLexica listaLexica = new ListaLexica(); //objeto para armazenamento e representacao final da lista
+			ListaLexica listaErros = new ListaLexica();
+			FileReader arq = new FileReader("C:\\Users\\ThinkPad\\Desktop\\fatorial.txt");
+			BufferedReader lerArq = new BufferedReader(arq);
+			int numLinha = 0; //variavel para representar a linha
+		   	while(lerArq.ready()) { //enquanto arquivo ainda tiver linhas para leitura...
+		    		String linha = lerArq.readLine(); //leitura da linha
+		    		int begin = 0; //contador inicial para a verificacao do regex
+					int end = 1; //contador final para a verificacao do regex
+					numLinha++;
+					while(begin != end && end <= linha.length()) { //enquanto o contador inicial for diferente do final e o final nao exceder a linha...
+							
+						if(linha.substring(begin, end).compareTo("\"") == 0) { //analisador de string
+							begin++;
+							end++;
+							String apresentar = "\"";
+							while(linha.substring(begin, end).compareTo("\"") != 0) {
+								
+								apresentar = apresentar.concat(linha.substring(begin, end));
+								begin++;
+								end++;
+								if(linha.length() == end) {
+									apresentar = apresentar.concat(linha.substring(begin, end));
+									listaLexica.setVetor("Erro Lexico!!", apresentar, "Linha: " + numLinha, "Coluna: " + end);
+									break;
+								}
+							}
+							if(linha.length() != end) {
+								apresentar = apresentar.concat("\"");
+								listaLexica.setVetor("Lexema: " + apresentar, "Token: string", "Linha: " + numLinha, "Coluna: " + end);
+							}
+							begin++;
+							end++;
+							continue;
+						}
+							
+						if(linha.substring(begin, end).compareTo(" ") == 0) { //pulador de espacos		
+							begin++;
+							end++;
+							continue;
+						}
+							
+						if(linha.substring(begin, end).compareTo("\t") == 0) { //pulador de tabs
+							begin++;
+							end++;
+							continue;
+						}
+							
+							
+						if (findMatch(linha.substring(begin, end)) == -1) { //adicionador de erros na lista
+							listaLexica.setVetor("Erro Lexico!!","\t" + linha.substring(begin, end), "Linha: " + numLinha, "Coluna: " + end);
+							listaErros.setErros("Erro Lexico!!","\t" + linha.substring(begin, end), "Linha: " + numLinha, "Coluna: " + end);
+							begin++;
+							end++;
+							continue;
+						}
+							
+						while(end < linha.length() && findMatch(linha.substring(begin, end)) != -1) { /*incrementa o end para continuar a analise da linha caso
+																											*ache um token ou tenha linha para continuar*/
+							end++;
+						}
+							
+						if (findMatch(linha.substring(begin, end)) == -1) //decrementa o end caso encontre algum token ou erro
+							end--;
+							
+						String word = linha.substring(begin, end); //string para receber o token
+							
+						int k = findMatch(word);
+							
+						if (k != -1)  
+							listaLexica.setVetor("Lexema: " + word, "Token: " + expressions.get(k).getKey(), "Linha: " + numLinha, "Coluna: " + end); //impressao da lista
+						
+						begin = end; //faz o begin iniciar apartir do fim para verificar outra palavra
+						end = end + 1; //incrementa o end em 1 para iniciar a verificacao de uma nova palavra
+					}	
+				}
+			    List<String> apresentar = listaLexica.getVetor();
+			    for(int i=0;i<apresentar.size(); i++) { //imprime a lista
+					System.out.printf("%s",apresentar.get(i));
+			    }
+			    lerArq.close();
+			}catch(IOException e) {
+				e.getMessage();
+			}		
+		}
+		
+	public static void main(String[] args) {
+		AnalisadorLexico al = new AnalisadorLexico();
+		al.analyse();
+		System.out.println("Analisador Lexico funfou!");
+	}	
+}
+
+
+
+
+
+
+
+
+package compiladores;
+
+import java.util.ArrayList;
+
+public class ListaLexica {
+	private ArrayList<String> listaApresentar = new ArrayList<>();
+	private ArrayList<String> listaErros = new ArrayList<>();
+	
+	public void setVetor(String valor, String chave, String linha, String coluna) {
+		//String linhaString = Integer.toString(linha);
+		//String colunaString = Integer.toString(coluna);
+		listaApresentar.add(valor+"\t"+chave+"\t"+linha+"\t"+coluna+"\n");
+	}
+	
+	public void setErros(String valor, String chave, String linha, String coluna) {
+		listaErros.add(valor+"\t"+chave+"\t"+linha+"\t"+coluna+"\n");
+	}
+	
+	public ArrayList<String> getVetor() {
+		return listaApresentar;
+	}
+	
+	public ArrayList<String> getErros() {
+		return listaErros;
+	}
+}
